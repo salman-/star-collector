@@ -13,12 +13,17 @@ function PhaserGame() {
 
     const game = new Phaser.Game({
       type: Phaser.AUTO,
-
-      width: 800,
-      height: 600,
-
       parent: gameContainer.current,
-
+      backgroundColor: '#000000',
+      scale: {
+        mode: Phaser.Scale.RESIZE,
+        width: window.innerWidth,
+        height: window.innerHeight,
+      },
+      physics: {
+        default: 'arcade',
+        arcade: { gravity: { x: 0, y: 300 }, debug: false },
+      },
       scene: GameScene,
     });
 
@@ -28,7 +33,7 @@ function PhaserGame() {
     };
   }, []);
 
-  return <div ref={gameContainer} />;
+  return <div ref={gameContainer} className="game-container" />;
 }
 
 export default PhaserGame;

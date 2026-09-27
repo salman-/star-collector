@@ -33,7 +33,7 @@ function PhaserGame() {
     };
   }, []);
 
-  return <div ref={gameContainer} className="game-container" />;
+  return <div ref={gameContainer} className="game-container flex-grow-1" />;
 }
 
 export default PhaserGame;

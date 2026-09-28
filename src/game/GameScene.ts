@@ -5,7 +5,6 @@ export class GameScene extends Phaser.Scene {
   private stars!: Phaser.Physics.Arcade.Group;
   private bombs!: Phaser.Physics.Arcade.Group;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
-  private scoreText!: Phaser.GameObjects.Text;
   private score = 0;
   private gameOver = false;
 
@@ -70,11 +69,6 @@ export class GameScene extends Phaser.Scene {
       );
     });
     this.bombs = this.physics.add.group();
-    this.scoreText = this.add.text(16, 16, "Score: 0", {
-      fontSize: "32px",
-      color: "#000",
-    });
-
     this.physics.add.collider(this.player, platforms);
     this.physics.add.collider(this.stars, platforms);
     this.physics.add.collider(this.bombs, platforms);
@@ -114,7 +108,7 @@ export class GameScene extends Phaser.Scene {
     const star = starObject as Phaser.Physics.Arcade.Sprite;
     star.disableBody(true, true);
     this.score += 10;
-    this.scoreText.setText(`Score: ${this.score}`);
+    this.game.events.emit("score-updated", this.score);
 
     if (this.stars.countActive(true) !== 0) return;
 

@@ -2,7 +2,11 @@ import { useEffect, useRef } from "react";
 import Phaser from "phaser";
 import { GameScene } from "./game/GameScene";
 
-function PhaserGame() {
+type PhaserGameProps = {
+  onScoreChange: (score: number) => void;
+};
+
+function PhaserGame({ onScoreChange }: PhaserGameProps) {
   const gameContainer = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -28,11 +32,14 @@ function PhaserGame() {
       scene: GameScene,
     });
 
+    game.events.on("score-updated", onScoreChange);
+
     return () => {
       // Destroy the Phaser game when the component unmounts.
+      game.events.off("score-updated", onScoreChange);
       game.destroy(true);
     };
-  }, []);
+  }, [onScoreChange]);
 
   return <div ref={gameContainer} className="game-container flex-grow-1" />;
 }

@@ -16,9 +16,10 @@ function PhaserGame() {
       parent: gameContainer.current,
       backgroundColor: '#000000',
       scale: {
-        mode: Phaser.Scale.RESIZE,
-        width: window.innerWidth,
-        height: window.innerHeight,
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        width: 800,
+        height: 600,
       },
       physics: {
         default: 'arcade',

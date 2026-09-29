@@ -13,11 +13,12 @@ export class GameScene extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image("sky", "/assets/sky.png");
-    this.load.image("ground", "/assets/platform.png");
-    this.load.image("star", "/assets/star.png");
-    this.load.image("bomb", "/assets/bomb.png");
-    this.load.spritesheet("dude", "/assets/dude.png", {
+    const asset = (path: string) => `${import.meta.env.BASE_URL}assets/${path}`;
+    this.load.image("sky", asset("sky.png"));
+    this.load.image("ground", asset("platform.png"));
+    this.load.image("star", asset("star.png"));
+    this.load.image("bomb", asset("bomb.png"));
+    this.load.spritesheet("dude", asset("dude.png"), {
       frameWidth: 32,
       frameHeight: 48,
     });
@@ -32,11 +33,22 @@ export class GameScene extends Phaser.Scene {
     const ground = platforms.create(width / 2, height - 16, "ground");
     ground.setDisplaySize(width, 32);
     ground.refreshBody();
-    platforms.create(width * 0.75, height * 0.65, "ground");
-    platforms.create(width * 0.1, height * 0.45, "ground");
-    platforms.create(width * 0.9, height * 0.35, "ground");
 
-    this.player = this.physics.add.sprite(width * 0.125, height * 0.7, "dude");
+    // Four ledges form a steady staircase above the ground (five platforms total).
+    const ledges = [
+      { x: 120, y: 460 },
+      { x: 306, y: 360 },
+      { x: 492, y: 260 },
+      { x: 678, y: 160 },
+    ];
+    for (const { x, y } of ledges) {
+      const ledge = platforms.create(x, y, "ground");
+      ledge.setDisplaySize(160, 24);
+      ledge.refreshBody();
+    }
+
+    // Spawn slightly above the ground so Arcade Physics can resolve a clean landing.
+    this.player = this.physics.add.sprite(width / 2, height - 72, "dude");
     this.player.setBounce(0.2).setCollideWorldBounds(true);
 
     this.anims.create({
@@ -92,15 +104,17 @@ export class GameScene extends Phaser.Scene {
     if (this.gameOver) return;
 
     if (this.cursors.left.isDown) {
-      this.player.setVelocityX(-160).anims.play("left", true);
+      this.player.setVelocityX(-220).anims.play("left", true);
     } else if (this.cursors.right.isDown) {
-      this.player.setVelocityX(160).anims.play("right", true);
+      this.player.setVelocityX(220).anims.play("right", true);
     } else {
       this.player.setVelocityX(0).anims.play("turn");
     }
 
-    if (this.cursors.up.isDown && this.player.body?.touching.down) {
-      this.player.setVelocityY(-330);
+    const body = this.player.body;
+    const isGrounded = body?.touching.down || body?.blocked.down;
+    if (this.cursors.up.isDown && isGrounded) {
+      this.player.setVelocityY(-450);
     }
   }
 

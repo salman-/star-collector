@@ -1,5 +1,6 @@
 import ReactGA from "react-ga4";
 
+// Google-Analytic setup
 export const initGA = () => {
   ReactGA.initialize("G-PLJ5DK5K50");
 };

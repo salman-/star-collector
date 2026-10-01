@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import Phaser from "phaser";
-import { GameScene } from "./game/GameScene";
+import { GameScene } from "../game/GameScene";
 
 type PhaserGameProps = {
   onScoreChange: (score: number) => void;

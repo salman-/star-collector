@@ -204,7 +204,7 @@ export class GameScene extends Phaser.Scene {
       "bomb",
     ) as Phaser.Physics.Arcade.Sprite;
     bomb.setBounce(1).setCollideWorldBounds(true);
-    bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
+    bomb.setVelocity(Phaser.Math.Between(100, 300), 100);
     (bomb.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
   }
 

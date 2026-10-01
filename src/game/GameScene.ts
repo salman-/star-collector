@@ -160,7 +160,13 @@ export class GameScene extends Phaser.Scene {
     const body = this.player.body;
     const isGrounded = body?.touching.down || body?.blocked.down;
     if (this.cursors.up.isDown && isGrounded) {
-      this.player.setVelocityY(-450);
+      const platformHeightDifference = 100;
+      const extraHeight = 20;
+      const targetJumpHeight = platformHeightDifference + extraHeight;
+      const gravity = this.physics.world.gravity.y;
+
+      // Physics formula: jump height = velocity² / (2 × gravity).
+      this.player.setVelocityY(-Math.sqrt(2 * gravity * targetJumpHeight));
     }
   }
 

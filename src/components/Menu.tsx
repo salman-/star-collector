@@ -1,18 +1,28 @@
 type MenuProps = {
   score: number;
+  bestScore: number;
 };
 
-const Menu = ({ score }: MenuProps) => {
+const Menu = ({ score, bestScore }: MenuProps) => {
   return (
-    <header className="d-flex align-items-center gap-3 p-3 bg-body-tertiary">
+    <header className="game-menu">
       <button
-        className="btn btn-primary"
+        className="game-menu__new-game"
         type="button"
         onClick={() => window.location.reload()}
       >
         NEW GAME
       </button>
-      <h2 className="h4 mb-0">Score: {score}</h2>
+      <div className="game-menu__stats" aria-label="Game scores">
+        <div className="game-menu__stat">
+          <span className="game-menu__label">Score</span>
+          <span className="game-menu__value">{score}</span>
+        </div>
+        <div className="game-menu__stat game-menu__stat--best">
+          <span className="game-menu__label">Best score</span>
+          <span className="game-menu__value">{bestScore}</span>
+        </div>
+      </div>
     </header>
   );
 };

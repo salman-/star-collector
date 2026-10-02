@@ -1,5 +1,4 @@
 import Phaser from "phaser";
-import { Bullet } from "./Bullet";
 
 /** Owns player setup, movement, jumping, animations, and shooting. */
 export class Player extends Phaser.Physics.Arcade.Sprite {
@@ -27,11 +26,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       const gravity = this.scene.physics.world.gravity.y;
       this.setVelocityY(-Math.sqrt(2 * gravity * jumpHeight));
     }
-  }
-
-  /** Shoots a bullet in the player's current horizontal direction. */
-  shoot(bullets: Phaser.Physics.Arcade.Group): void {
-    Bullet.fire(this.scene, bullets, this);
   }
 
   private createAnimations(): void {

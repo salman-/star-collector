@@ -1,15 +1,18 @@
 import Phaser from "phaser";
-import { Bomb } from "./objects/Bomb";
-import { Platforms } from "./objects/Platforms";
-import { Player } from "./objects/Player";
-import { Stars } from "./objects/Stars";
+import { Bombs } from "./objects/bombs/Bombs";
+import { Bullets } from "./objects/bullets/Bullets";
+import { Platforms } from "./objects/platforms/Platforms";
+import { Player } from "./objects/player/Player";
+import { Stars } from "./objects/stars/Stars";
+import type { Bomb } from "./objects/bombs/Bomb";
+import type { Bullet } from "./objects/bullets/Bullet";
 
 /** Connects the game objects, physics interactions, and score events. */
 export class GameScene extends Phaser.Scene {
   private player!: Player;
   private stars!: Stars;
-  private bombs!: Phaser.Physics.Arcade.Group;
-  private bullets!: Phaser.Physics.Arcade.Group;
+  private bombs!: Bombs;
+  private bullets!: Bullets;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private shootKey!: Phaser.Input.Keyboard.Key;
   private score = 0;
@@ -42,8 +45,8 @@ export class GameScene extends Phaser.Scene {
     const { width, height } = this.scale;
     this.player = new Player(this, width / 2, height - 72);
     this.stars = new Stars(this);
-    this.bombs = this.physics.add.group({ allowGravity: false });
-    this.bullets = this.physics.add.group({ allowGravity: false });
+    this.bombs = new Bombs(this);
+    this.bullets = new Bullets(this);
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.shootKey = this.input.keyboard!.addKey(
       Phaser.Input.Keyboard.KeyCodes.SPACE,
@@ -63,7 +66,7 @@ export class GameScene extends Phaser.Scene {
   ): void {
     this.physics.add.collider(this.player, platforms);
     this.physics.add.collider(this.stars.group, platforms);
-    this.physics.add.collider(this.bombs, platforms);
+    this.physics.add.collider(this.bombs.group, platforms);
     this.physics.add.overlap(
       this.player,
       this.stars.group,
@@ -73,14 +76,14 @@ export class GameScene extends Phaser.Scene {
     );
     this.physics.add.collider(
       this.player,
-      this.bombs,
+      this.bombs.group,
       this.hitBomb,
       undefined,
       this,
     );
     this.physics.add.overlap(
-      this.bullets,
-      this.bombs,
+      this.bullets.group,
+      this.bombs.group,
       this.hitBombWithBullet,
       undefined,
       this,
@@ -93,7 +96,7 @@ export class GameScene extends Phaser.Scene {
 
     this.player.handleInput(this.cursors);
     if (Phaser.Input.Keyboard.JustDown(this.shootKey)) {
-      this.player.shoot(this.bullets);
+      this.bullets.fireFrom(this.player);
     }
   }
 
@@ -112,8 +115,8 @@ export class GameScene extends Phaser.Scene {
     bulletObject: unknown,
     bombObject: unknown,
   ): void => {
-    (bulletObject as Phaser.Physics.Arcade.Sprite).destroy();
-    (bombObject as Phaser.Physics.Arcade.Sprite).destroy();
+    this.bullets.remove(bulletObject as Bullet);
+    this.bombs.remove(bombObject as Bomb);
     this.addScore(50);
     this.spawnBomb();
     this.spawnBomb();
@@ -134,6 +137,6 @@ export class GameScene extends Phaser.Scene {
 
   /** Adds a bomb on the side opposite the player. */
   private spawnBomb(): void {
-    Bomb.spawnAwayFromPlayer(this, this.bombs, this.player);
+    this.bombs.spawnAwayFromPlayer(this.player);
   }
 }

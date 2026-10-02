@@ -1,9 +1,14 @@
 import Phaser from "phaser";
 
+type StaticPlatform = Phaser.Types.Physics.Arcade.GameObjectWithStaticBody & {
+  setPosition(x: number, y: number): StaticPlatform;
+  refreshBody(): StaticPlatform;
+};
+
 /** Owns the platforms and creates reachable randomized ledge layouts. */
 export class Platforms {
   readonly group: Phaser.Physics.Arcade.StaticGroup;
-  private readonly ledges: Phaser.Types.Physics.Arcade.GameObjectWithStaticBody[] = [];
+  private readonly ledges: StaticPlatform[] = [];
   private readonly maxHorizontalJump = 410;
   private readonly scene: Phaser.Scene;
 
@@ -45,7 +50,7 @@ export class Platforms {
 
   /** Moves a ledge smoothly and keeps its static physics body in sync. */
   private moveLedge(
-    ledge: Phaser.Types.Physics.Arcade.GameObjectWithStaticBody,
+    ledge: StaticPlatform,
     x: number,
     y: number,
     animate: boolean,

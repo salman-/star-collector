@@ -61,9 +61,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** Registers the collisions and overlaps between game objects. */
-  private connectPhysics(
-    platforms: Phaser.Physics.Arcade.StaticGroup,
-  ): void {
+  private connectPhysics(platforms: Phaser.Physics.Arcade.StaticGroup): void {
     this.physics.add.collider(this.player, platforms);
     this.physics.add.collider(this.stars.group, platforms);
     this.physics.add.collider(this.bombs.group, platforms);

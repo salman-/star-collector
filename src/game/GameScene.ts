@@ -30,7 +30,7 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  /** Builds the scene by setting up its background, objects, controls, and rules. */
+  /** Creates the game world, objects, controls, and collision rules. */
   create(): void {
     this.createBackground();
     const platforms = this.createPlatforms();

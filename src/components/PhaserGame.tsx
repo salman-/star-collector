@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import Phaser from "phaser";
 import { GameScene } from "../game/GameScene";
+import { InstructionsScene } from "../game/InstructionsScene";
 
 type PhaserGameProps = {
   onScoreChange: (score: number) => void;
@@ -29,7 +30,7 @@ function PhaserGame({ onScoreChange }: PhaserGameProps) {
         default: 'arcade',
         arcade: { gravity: { x: 0, y: 300 }, debug: false },
       },
-      scene: GameScene,
+      scene: [InstructionsScene, GameScene],
     });
 
     game.events.on("score-updated", onScoreChange);

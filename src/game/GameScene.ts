@@ -1,7 +1,11 @@
 import Phaser from "phaser";
+import { Bomb } from "./objects/Bomb";
+import { Platforms } from "./objects/Platforms";
+import { Player } from "./objects/Player";
 
+/** Connects the game objects, physics interactions, and score events. */
 export class GameScene extends Phaser.Scene {
-  private player!: Phaser.Physics.Arcade.Sprite;
+  private player!: Player;
   private stars!: Phaser.Physics.Arcade.Group;
   private bombs!: Phaser.Physics.Arcade.Group;
   private bullets!: Phaser.Physics.Arcade.Group;
@@ -10,12 +14,12 @@ export class GameScene extends Phaser.Scene {
   private score = 0;
   private gameOver = false;
 
-  /** Creates the scene and gives it the name used by the Phaser game config. */
+  /** Creates the scene with its Phaser scene key. */
   constructor() {
     super("GameScene");
   }
 
-  /** Loads the images and player sprite sheet before the scene starts. */
+  /** Loads all images and sprite frames used by the game. */
   preload(): void {
     const assetPath = (fileName: string) =>
       `${import.meta.env.BASE_URL}assets/${fileName}`;
@@ -30,79 +34,29 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  /** Creates the game world, objects, controls, and collision rules. */
+  /** Creates the world and connects its physics and input. */
   create(): void {
     this.createBackground();
-    const platforms = this.createPlatforms();
-    this.createPlayer();
-    this.createPlayerAnimations();
+    const platforms = Platforms.create(this);
+    const { width, height } = this.scale;
+    this.player = new Player(this, width / 2, height - 72);
     this.createStars();
-    this.bombs = this.physics.add.group();
-    this.bullets = this.physics.add.group();
+    this.bombs = this.physics.add.group({ allowGravity: false });
+    this.bullets = this.physics.add.group({ allowGravity: false });
     this.cursors = this.input.keyboard!.createCursorKeys();
-    this.shootKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-    this.createPhysicsRules(platforms);
+    this.shootKey = this.input.keyboard!.addKey(
+      Phaser.Input.Keyboard.KeyCodes.SPACE,
+    );
+    this.connectPhysics(platforms);
   }
 
-  /** Adds the sky image and stretches it to fill the game window. */
+  /** Draws the sky behind the play area. */
   private createBackground(): void {
     const { width, height } = this.scale;
     this.add.image(width / 2, height / 2, "sky").setDisplaySize(width, height);
   }
 
-  /** Creates the floor and staircase platforms that support the game objects. */
-  private createPlatforms(): Phaser.Physics.Arcade.StaticGroup {
-    const { width, height } = this.scale;
-    const platforms = this.physics.add.staticGroup();
-    const ground = platforms.create(width / 2, height - 16, "ground");
-    ground.setDisplaySize(width, 32);
-    ground.refreshBody();
-
-    // Four ledges form a steady staircase above the ground (five platforms total).
-    const ledges = [
-      { x: 120, y: 460 },
-      { x: 306, y: 360 },
-      { x: 492, y: 260 },
-      { x: 678, y: 160 },
-    ];
-    for (const { x, y } of ledges) {
-      const ledge = platforms.create(x, y, "ground");
-      ledge.setDisplaySize(160, 24);
-      ledge.refreshBody();
-    }
-    return platforms;
-  }
-
-  /** Places the player near the bottom of the scene and sets basic physics. */
-  private createPlayer(): void {
-    const { width, height } = this.scale;
-    // Spawn slightly above the ground so Arcade Physics can resolve a clean landing.
-    this.player = this.physics.add.sprite(width / 2, height - 72, "dude");
-    this.player.setBounce(0.2).setCollideWorldBounds(true);
-  }
-
-  /** Defines the animations used when the player moves left, stands, or moves right. */
-  private createPlayerAnimations(): void {
-    this.anims.create({
-      key: "left",
-      frames: this.anims.generateFrameNumbers("dude", { start: 0, end: 3 }),
-      frameRate: 10,
-      repeat: -1,
-    });
-    this.anims.create({
-      key: "turn",
-      frames: [{ key: "dude", frame: 4 }],
-      frameRate: 20,
-    });
-    this.anims.create({
-      key: "right",
-      frames: this.anims.generateFrameNumbers("dude", { start: 5, end: 8 }),
-      frameRate: 10,
-      repeat: -1,
-    });
-  }
-
-  /** Creates the collectible stars and gives each one a small bounce. */
+  /** Creates the collectible stars and gives them a small bounce. */
   private createStars(): void {
     const { width } = this.scale;
     this.stars = this.physics.add.group({
@@ -118,8 +72,8 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  /** Connects collisions and overlaps so the objects interact as expected. */
-  private createPhysicsRules(
+  /** Registers the collisions and overlaps between game objects. */
+  private connectPhysics(
     platforms: Phaser.Physics.Arcade.StaticGroup,
   ): void {
     this.physics.add.collider(this.player, platforms);
@@ -148,88 +102,53 @@ export class GameScene extends Phaser.Scene {
     );
   }
 
-  /** Reads the arrow keys and moves or jumps the player each frame. */
+  /** Updates the player while the game is active. */
   update(): void {
     if (this.gameOver) return;
 
-    this.movePlayerHorizontally();
-    this.jumpPlayer();
+    this.player.handleInput(this.cursors);
     if (Phaser.Input.Keyboard.JustDown(this.shootKey)) {
-      this.shootBullet();
+      this.player.shoot(this.bullets);
     }
   }
 
-  /** Moves the player left or right, or plays the standing animation. */
-  private movePlayerHorizontally(): void {
-    if (this.cursors.left.isDown) {
-      this.player.setVelocityX(-220).anims.play("left", true);
-    } else if (this.cursors.right.isDown) {
-      this.player.setVelocityX(220).anims.play("right", true);
-    } else {
-      this.player.setVelocityX(0).anims.play("turn");
-    }
-  }
-
-  /** Jumps only when the player is touching or blocked by a surface below. */
-  private jumpPlayer(): void {
-    const body = this.player.body;
-    const isGrounded = body?.touching.down || body?.blocked.down;
-    if (this.cursors.up.isDown && isGrounded) {
-      const platformHeightDifference = 100;
-      const extraHeight = 20;
-      const targetJumpHeight = platformHeightDifference + extraHeight;
-      const gravity = this.physics.world.gravity.y;
-
-      // Physics formula: jump height = velocity² / (2 × gravity).
-      this.player.setVelocityY(-Math.sqrt(2 * gravity * targetJumpHeight));
-    }
-  }
-
-  /** Fires one bullet per spacebar press in the player's current direction. */
-  private shootBullet(): void {
-    const body = this.player.body!;
-    //const isGrounded = body.touching.down || body.blocked.down;
-    const horizontalDirection = Math.sign(body.velocity.x);
-
-    // Shooting is only allowed while moving left or right on a platform.
-    if (/*!isGrounded ||*/ horizontalDirection === 0) return;
-
-    const velocityX = horizontalDirection * 500;
-    const bulletX = this.player.x + horizontalDirection * (this.player.displayWidth / 2 + 8);
-    const bullet = this.physics.add.image(bulletX, this.player.y, "bullet");
-    this.bullets.add(bullet);
-
-    bullet.body.setAllowGravity(false);
-    bullet.setVelocity(velocityX, 0);
-    bullet.setFlipX(horizontalDirection < 0);
-
-    // Remove the bullet after it has had time to leave the game window.
-    this.time.delayedCall(2000, () => bullet.destroy());
-  }
-
-  /** Hides a collected star, adds score, and starts the next round when needed. */
-  private collectStar = (_player: unknown, starObject: unknown) => {
+  /** Awards points when a star is collected and starts the next star round. */
+  private collectStar = (_player: unknown, starObject: unknown): void => {
     const star = starObject as Phaser.Physics.Arcade.Sprite;
     star.disableBody(true, true);
-    this.score += 10;
-    this.game.events.emit("score-updated", this.score);
+    this.addScore(10);
 
     if (this.stars.countActive(true) !== 0) return;
-
     this.resetStars();
-    this.createBombAwayFromPlayer();
+    this.spawnBomb();
   };
 
-  /** Removes a bullet and bomb that touch, then awards 50 points. */
-  private hitBombWithBullet = (bulletObject: unknown, bombObject: unknown) => {
-    (bulletObject as Phaser.Physics.Arcade.Image).destroy();
+  /** Removes a bullet and bomb, awards points, and spawns two new bombs. */
+  private hitBombWithBullet = (
+    bulletObject: unknown,
+    bombObject: unknown,
+  ): void => {
+    (bulletObject as Phaser.Physics.Arcade.Sprite).destroy();
     (bombObject as Phaser.Physics.Arcade.Sprite).destroy();
-    this.score += 50;
-    this.game.events.emit("score-updated", this.score);
-    this.createBombAwayFromPlayer();
+    this.addScore(50);
+    this.spawnBomb();
+    this.spawnBomb();
   };
 
-  /** Makes all stars visible again at the top of the scene. */
+  /** Pauses the game when the player touches a bomb. */
+  private hitBomb = (): void => {
+    this.physics.pause();
+    this.player.setTint(0xff0000).anims.play("turn");
+    this.gameOver = true;
+  };
+
+  /** Updates the current score and notifies the React interface. */
+  private addScore(points: number): void {
+    this.score += points;
+    this.game.events.emit("score-updated", this.score);
+  }
+
+  /** Re-enables every star at the top of the play area. */
   private resetStars(): void {
     this.stars.getChildren().forEach((child) => {
       const star = child as Phaser.Physics.Arcade.Sprite;
@@ -237,27 +156,8 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  /** Adds a bouncing bomb on the side opposite the player. */
-  private createBombAwayFromPlayer(): void {
-    const width = this.scale.width;
-    const x =
-      this.player.x < width / 2
-        ? Phaser.Math.Between(width / 2, width - 50)
-        : Phaser.Math.Between(50, width / 2);
-    const bomb = this.bombs.create(
-      x,
-      16,
-      "bomb",
-    ) as Phaser.Physics.Arcade.Sprite;
-    bomb.setBounce(1).setCollideWorldBounds(true);
-    bomb.setVelocity(Phaser.Math.Between(100, 300), 100);
-    (bomb.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
+  /** Adds a bomb on the side opposite the player. */
+  private spawnBomb(): void {
+    Bomb.spawnAwayFromPlayer(this, this.bombs, this.player);
   }
-
-  /** Pauses the game and marks the player when they touch a bomb. */
-  private hitBomb = () => {
-    this.physics.pause();
-    this.player.setTint(0xff0000).anims.play("turn");
-    this.gameOver = true;
-  };
 }

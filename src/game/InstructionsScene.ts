@@ -39,7 +39,7 @@ export class InstructionsScene extends Phaser.Scene {
     this.add.text(
       width / 2,
       height / 2 - 10,
-      "Collect a star: +10 points\n\n← | → Move     ↑ Jump\n\nMove left or right and press SPACE to shoot at bombs\nHit a bomb: +50 points, and two more bombs appear",
+      "Collect a star: +10 points\nCollect all stars: platforms move\n\n← | → Move     ↑ Jump\n\nMove left or right and press SPACE to shoot at bombs\nHit a bomb: +50 points, and two more bombs appear",
       {
         fontSize: "20px",
         color: "#ffffff",

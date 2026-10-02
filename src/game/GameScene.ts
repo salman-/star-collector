@@ -10,6 +10,7 @@ import type { Bullet } from "./objects/bullets/Bullet";
 /** Connects the game objects, physics interactions, and score events. */
 export class GameScene extends Phaser.Scene {
   private player!: Player;
+  private platforms!: Platforms;
   private stars!: Stars;
   private bombs!: Bombs;
   private bullets!: Bullets;
@@ -41,7 +42,7 @@ export class GameScene extends Phaser.Scene {
   /** Creates the world and connects its physics and input. */
   create(): void {
     this.createBackground();
-    const platforms = Platforms.create(this);
+    this.platforms = new Platforms(this);
     const { width, height } = this.scale;
     this.player = new Player(this, width / 2, height - 72);
     this.stars = new Stars(this);
@@ -51,7 +52,7 @@ export class GameScene extends Phaser.Scene {
     this.shootKey = this.input.keyboard!.addKey(
       Phaser.Input.Keyboard.KeyCodes.SPACE,
     );
-    this.connectPhysics(platforms);
+    this.connectPhysics();
   }
 
   /** Draws the sky behind the play area. */
@@ -61,10 +62,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** Registers the collisions and overlaps between game objects. */
-  private connectPhysics(platforms: Phaser.Physics.Arcade.StaticGroup): void {
-    this.physics.add.collider(this.player, platforms);
-    this.physics.add.collider(this.stars.group, platforms);
-    this.physics.add.collider(this.bombs.group, platforms);
+  private connectPhysics(): void {
+    this.physics.add.collider(this.player, this.platforms.group);
+    this.physics.add.collider(this.stars.group, this.platforms.group);
+    this.physics.add.collider(this.bombs.group, this.platforms.group);
     this.physics.add.overlap(
       this.player,
       this.stars.group,
@@ -104,6 +105,7 @@ export class GameScene extends Phaser.Scene {
     this.addScore(10);
 
     if (this.stars.hasActiveStars()) return;
+    this.platforms.randomizeLedges();
     this.stars.reset();
     this.spawnBomb();
   };

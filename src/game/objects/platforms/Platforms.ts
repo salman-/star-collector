@@ -1,25 +1,106 @@
 import Phaser from "phaser";
 
-/** Builds the ground and staircase used by the game. */
+/** Owns the platforms and creates reachable randomized ledge layouts. */
 export class Platforms {
-  static create(scene: Phaser.Scene): Phaser.Physics.Arcade.StaticGroup {
+  readonly group: Phaser.Physics.Arcade.StaticGroup;
+  private readonly ledges: Phaser.Types.Physics.Arcade.GameObjectWithStaticBody[] = [];
+  private readonly maxHorizontalJump = 410;
+
+  constructor(private scene: Phaser.Scene) {
     const { width, height } = scene.scale;
-    const platforms = scene.physics.add.staticGroup();
-    const ground = platforms.create(width / 2, height - 16, "ground");
+    this.group = scene.physics.add.staticGroup();
+    const ground = this.group.create(width / 2, height - 16, "ground");
     ground.setDisplaySize(width, 32);
     ground.refreshBody();
 
-    for (const { x, y } of [
-      { x: 120, y: 460 },
-      { x: 306, y: 360 },
-      { x: 492, y: 260 },
-      { x: 678, y: 160 },
-    ]) {
-      const ledge = platforms.create(x, y, "ground");
+    for (let index = 0; index < 4; index++) {
+      const ledge = this.group.create(width / 2, height - 120, "ground");
       ledge.setDisplaySize(160, 24);
       ledge.refreshBody();
+      this.ledges.push(ledge);
     }
 
-    return platforms;
+    this.randomizeLedges(false);
+  }
+
+  /** Shuffles ledges across the screen while keeping every jump reachable. */
+  randomizeLedges(animate = true): void {
+    const { width, height } = this.scene.scale;
+    const columns = [0.14, 0.38, 0.62, 0.86].map((part) => width * part);
+    const columnOrder = this.getReachableColumnOrder(columns);
+    let y = height - 120;
+
+    this.ledges.forEach((ledge, index) => {
+      if (index > 0) {
+        y -= Phaser.Math.Between(88, 102);
+      }
+
+      const baseX = columns[columnOrder[index]];
+      const x = baseX + Phaser.Math.Between(-12, 12);
+      this.moveLedge(ledge, x, y, animate);
+    });
+  }
+
+  /** Moves a ledge smoothly and keeps its static physics body in sync. */
+  private moveLedge(
+    ledge: Phaser.Types.Physics.Arcade.GameObjectWithStaticBody,
+    x: number,
+    y: number,
+    animate: boolean,
+  ): void {
+    this.scene.tweens.killTweensOf(ledge);
+
+    if (!animate) {
+      ledge.setPosition(x, y);
+      ledge.refreshBody();
+      return;
+    }
+
+    this.scene.tweens.add({
+      targets: ledge,
+      x,
+      y,
+      duration: 900,
+      ease: "Sine.easeInOut",
+      onUpdate: () => ledge.refreshBody(),
+      onComplete: () => ledge.refreshBody(),
+    });
+  }
+
+  /** Picks a random order whose neighboring ledges stay within jump range. */
+  private getReachableColumnOrder(columns: number[]): number[] {
+    const findPath = (
+      order: number[],
+      remaining: number[],
+    ): number[] | undefined => {
+      if (remaining.length === 0) return order;
+
+      const lastColumn = columns[order[order.length - 1]];
+      const nextColumns = Phaser.Utils.Array.Shuffle(
+        remaining.filter(
+          (column) =>
+            Math.abs(columns[column] - lastColumn) <= this.maxHorizontalJump,
+        ),
+      );
+
+      for (const nextColumn of nextColumns) {
+        const path = findPath(
+          [...order, nextColumn],
+          remaining.filter((column) => column !== nextColumn),
+        );
+        if (path) return path;
+      }
+    };
+
+    const starts = Phaser.Utils.Array.Shuffle(columns.map((_, index) => index));
+    for (const start of starts) {
+      const path = findPath(
+        [start],
+        columns.map((_, index) => index).filter((index) => index !== start),
+      );
+      if (path) return path;
+    }
+
+    return columns.map((_, index) => index);
   }
 }

@@ -22,7 +22,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     const body = this.body as Phaser.Physics.Arcade.Body;
     if (cursors.up.isDown && (body.touching.down || body.blocked.down)) {
-      const jumpHeight = 100 + 20;
+      // Extra height gives enough airtime to reach the next randomized ledge.
+      const jumpHeight = 200;
       const gravity = this.scene.physics.world.gravity.y;
       this.setVelocityY(-Math.sqrt(2 * gravity * jumpHeight));
     }

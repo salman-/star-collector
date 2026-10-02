@@ -5,8 +5,10 @@ import type { Player } from "../player/Player";
 /** Owns the bullet collection and handles firing and cleanup. */
 export class Bullets {
   readonly group: Phaser.Physics.Arcade.Group;
+  private readonly scene: Phaser.Scene;
 
-  constructor(private scene: Phaser.Scene) {
+  constructor(scene: Phaser.Scene) {
+    this.scene = scene;
     this.group = scene.physics.add.group({ allowGravity: false });
   }
 

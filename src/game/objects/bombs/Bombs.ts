@@ -5,8 +5,10 @@ import type { Player } from "../player/Player";
 /** Owns the bomb collection and handles bomb spawning and removal. */
 export class Bombs {
   readonly group: Phaser.Physics.Arcade.Group;
+  private readonly scene: Phaser.Scene;
 
-  constructor(private scene: Phaser.Scene) {
+  constructor(scene: Phaser.Scene) {
+    this.scene = scene;
     this.group = scene.physics.add.group({ allowGravity: false });
   }
 

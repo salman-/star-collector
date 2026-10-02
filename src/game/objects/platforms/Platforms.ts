@@ -5,8 +5,10 @@ export class Platforms {
   readonly group: Phaser.Physics.Arcade.StaticGroup;
   private readonly ledges: Phaser.Types.Physics.Arcade.GameObjectWithStaticBody[] = [];
   private readonly maxHorizontalJump = 410;
+  private readonly scene: Phaser.Scene;
 
-  constructor(private scene: Phaser.Scene) {
+  constructor(scene: Phaser.Scene) {
+    this.scene = scene;
     const { width, height } = scene.scale;
     this.group = scene.physics.add.staticGroup();
     const ground = this.group.create(width / 2, height - 16, "ground");

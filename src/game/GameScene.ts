@@ -4,7 +4,9 @@ export class GameScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
   private stars!: Phaser.Physics.Arcade.Group;
   private bombs!: Phaser.Physics.Arcade.Group;
+  private bullets!: Phaser.Physics.Arcade.Group;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
+  private shootKey!: Phaser.Input.Keyboard.Key;
   private score = 0;
   private gameOver = false;
 
@@ -21,6 +23,7 @@ export class GameScene extends Phaser.Scene {
     this.load.image("ground", assetPath("platform.png"));
     this.load.image("star", assetPath("star.png"));
     this.load.image("bomb", assetPath("bomb.png"));
+    this.load.image("bullet", assetPath("bullet.png"));
     this.load.spritesheet("dude", assetPath("dude.png"), {
       frameWidth: 32,
       frameHeight: 48,
@@ -35,7 +38,9 @@ export class GameScene extends Phaser.Scene {
     this.createPlayerAnimations();
     this.createStars();
     this.bombs = this.physics.add.group();
+    this.bullets = this.physics.add.group();
     this.cursors = this.input.keyboard!.createCursorKeys();
+    this.shootKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     this.createPhysicsRules(platforms);
   }
 
@@ -105,7 +110,7 @@ export class GameScene extends Phaser.Scene {
       repeat: 11,
       setXY: { x: 50, y: 0, stepX: Math.max(50, width / 12) },
     });
-    
+
     this.stars.getChildren().forEach((child) => {
       (child as Phaser.Physics.Arcade.Sprite).setBounceY(
         Phaser.Math.FloatBetween(0.4, 0.8),
@@ -134,6 +139,13 @@ export class GameScene extends Phaser.Scene {
       undefined,
       this,
     );
+    this.physics.add.overlap(
+      this.bullets,
+      this.bombs,
+      this.hitBombWithBullet,
+      undefined,
+      this,
+    );
   }
 
   /** Reads the arrow keys and moves or jumps the player each frame. */
@@ -142,6 +154,9 @@ export class GameScene extends Phaser.Scene {
 
     this.movePlayerHorizontally();
     this.jumpPlayer();
+    if (Phaser.Input.Keyboard.JustDown(this.shootKey)) {
+      this.shootBullet();
+    }
   }
 
   /** Moves the player left or right, or plays the standing animation. */
@@ -170,6 +185,28 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  /** Fires one bullet per spacebar press in the player's current direction. */
+  private shootBullet(): void {
+    const body = this.player.body!;
+    //const isGrounded = body.touching.down || body.blocked.down;
+    const horizontalDirection = Math.sign(body.velocity.x);
+
+    // Shooting is only allowed while moving left or right on a platform.
+    if (/*!isGrounded ||*/ horizontalDirection === 0) return;
+
+    const velocityX = horizontalDirection * 500;
+    const bulletX = this.player.x + horizontalDirection * (this.player.displayWidth / 2 + 8);
+    const bullet = this.physics.add.image(bulletX, this.player.y, "bullet");
+    this.bullets.add(bullet);
+
+    bullet.body.setAllowGravity(false);
+    bullet.setVelocity(velocityX, 0);
+    bullet.setFlipX(horizontalDirection < 0);
+
+    // Remove the bullet after it has had time to leave the game window.
+    this.time.delayedCall(2000, () => bullet.destroy());
+  }
+
   /** Hides a collected star, adds score, and starts the next round when needed. */
   private collectStar = (_player: unknown, starObject: unknown) => {
     const star = starObject as Phaser.Physics.Arcade.Sprite;
@@ -180,6 +217,15 @@ export class GameScene extends Phaser.Scene {
     if (this.stars.countActive(true) !== 0) return;
 
     this.resetStars();
+    this.createBombAwayFromPlayer();
+  };
+
+  /** Removes a bullet and bomb that touch, then awards 50 points. */
+  private hitBombWithBullet = (bulletObject: unknown, bombObject: unknown) => {
+    (bulletObject as Phaser.Physics.Arcade.Image).destroy();
+    (bombObject as Phaser.Physics.Arcade.Sprite).destroy();
+    this.score += 50;
+    this.game.events.emit("score-updated", this.score);
     this.createBombAwayFromPlayer();
   };
 

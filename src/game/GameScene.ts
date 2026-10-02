@@ -2,11 +2,12 @@ import Phaser from "phaser";
 import { Bomb } from "./objects/Bomb";
 import { Platforms } from "./objects/Platforms";
 import { Player } from "./objects/Player";
+import { Stars } from "./objects/Stars";
 
 /** Connects the game objects, physics interactions, and score events. */
 export class GameScene extends Phaser.Scene {
   private player!: Player;
-  private stars!: Phaser.Physics.Arcade.Group;
+  private stars!: Stars;
   private bombs!: Phaser.Physics.Arcade.Group;
   private bullets!: Phaser.Physics.Arcade.Group;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -40,7 +41,7 @@ export class GameScene extends Phaser.Scene {
     const platforms = Platforms.create(this);
     const { width, height } = this.scale;
     this.player = new Player(this, width / 2, height - 72);
-    this.createStars();
+    this.stars = new Stars(this);
     this.bombs = this.physics.add.group({ allowGravity: false });
     this.bullets = this.physics.add.group({ allowGravity: false });
     this.cursors = this.input.keyboard!.createCursorKeys();
@@ -56,32 +57,16 @@ export class GameScene extends Phaser.Scene {
     this.add.image(width / 2, height / 2, "sky").setDisplaySize(width, height);
   }
 
-  /** Creates the collectible stars and gives them a small bounce. */
-  private createStars(): void {
-    const { width } = this.scale;
-    this.stars = this.physics.add.group({
-      key: "star",
-      repeat: 11,
-      setXY: { x: 50, y: 0, stepX: Math.max(50, width / 12) },
-    });
-
-    this.stars.getChildren().forEach((child) => {
-      (child as Phaser.Physics.Arcade.Sprite).setBounceY(
-        Phaser.Math.FloatBetween(0.4, 0.8),
-      );
-    });
-  }
-
   /** Registers the collisions and overlaps between game objects. */
   private connectPhysics(
     platforms: Phaser.Physics.Arcade.StaticGroup,
   ): void {
     this.physics.add.collider(this.player, platforms);
-    this.physics.add.collider(this.stars, platforms);
+    this.physics.add.collider(this.stars.group, platforms);
     this.physics.add.collider(this.bombs, platforms);
     this.physics.add.overlap(
       this.player,
-      this.stars,
+      this.stars.group,
       this.collectStar,
       undefined,
       this,
@@ -114,12 +99,11 @@ export class GameScene extends Phaser.Scene {
 
   /** Awards points when a star is collected and starts the next star round. */
   private collectStar = (_player: unknown, starObject: unknown): void => {
-    const star = starObject as Phaser.Physics.Arcade.Sprite;
-    star.disableBody(true, true);
+    this.stars.collect(starObject as Phaser.Physics.Arcade.Sprite);
     this.addScore(10);
 
-    if (this.stars.countActive(true) !== 0) return;
-    this.resetStars();
+    if (this.stars.hasActiveStars()) return;
+    this.stars.reset();
     this.spawnBomb();
   };
 
@@ -146,14 +130,6 @@ export class GameScene extends Phaser.Scene {
   private addScore(points: number): void {
     this.score += points;
     this.game.events.emit("score-updated", this.score);
-  }
-
-  /** Re-enables every star at the top of the play area. */
-  private resetStars(): void {
-    this.stars.getChildren().forEach((child) => {
-      const star = child as Phaser.Physics.Arcade.Sprite;
-      star.enableBody(true, star.x, 0, true, true);
-    });
   }
 
   /** Adds a bomb on the side opposite the player. */
